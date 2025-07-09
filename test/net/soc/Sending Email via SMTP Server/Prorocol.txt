@@ -1,0 +1,13 @@
+    send("EHLO smtp.gmail.com\r\n");       	 		-->      	9 lines
+    send("AUTH LOGIN\r\n");               	 		-->			1 line
+    send(username + "\r\n");             	 		-->			1 line
+    send(password + "\r\n");            	 		-->			1 line
+    send("MAIL FROM:<xxx@ru.ac.bd>\r\n");   		-->    		1 line
+    send("RCPT TO:<xyz@gmail.com>\r\n");            -->			1 line
+    send("DATA\r\n");								-->			1 line
+    send("FROM: xxx@ru.ac.bd\r\n");                            
+    send("TO: xyz@gmail.com\r\n");                    
+    send("Subject: Email test  "\r\n");
+    send("THIS IS A TEST EMAIL. THANK YOU\r\n");
+    send(".\r\n");   								-->			1 line
+    send("QUIT\r\n");								-->			1 line  

@@ -1,0 +1,28 @@
+DSP LAB-29
+
+• Generating elementary signals like Unit Step, Ramp, Exponential, Sine, and
+Cosine sequences.
+
+• Demonstrates the effect of sampling, aliasing.
+
+• Show that the highest rate of oscillation in a discrete-time sinusoidal is obtained
+when ω=π.
+
+• Consider the analog signal  x_a (t)=3cos(100πt). 
+⟹Sampling it at 200 Hz and 75 Hz. Show the discrete-time signal after sampling. -> realization.
+
+• Consider the analog signal: x_a (t)=3cos(2000πt)+5sin(6000πt)+10cos(12000πt). Show the effect of sampling rate.
+
+• The impulse response of a discrete-time LTI system is h(n)={u(n)-u(n-5)}.
+⟹Determine the output of the system for the input x[n]=u(n), using the convolution sum.
+
+
+• Given x(n)=[1,3,-2,4]  y(n)=[2,3,-1,3],  z(n)=[2,-1,4,-2]
+⟹Find the correlation between x(n) & y(n) and y(n) & z(n). ⟹ observe the realization.
+
+• Filter realization using 6-point averaging, 6-point differencing equations.
+
+• DFT of x_n (t)=sin(2π⋅1000t)+0.5sin(2π⋅2000t+3π/4).  
+⟹Also DFT with window + window function realization.
+
+• Design a low pass FIR filter to remove high-frequency noise from a signal using convolution.

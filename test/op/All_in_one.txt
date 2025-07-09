@@ -1,0 +1,752 @@
+
+
+#### ✅ 1. Create a parent process with 3 child processes (addition, subtraction, multiplication):
+// q1.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid[3];
+    int a = 10, b = 5;
+
+    for (int i = 0; i < 3; i++) {
+        pid[i] = fork();
+        if (pid[i] == 0) {
+            if (i == 0)
+                printf("Child1(add): %d + %d = %d\n", a, b, a + b);
+            else if (i == 1)
+                printf("Child2(sub): %d - %d = %d\n", a, b, a - b);
+            else
+                printf("Child3(mul): %d * %d = %d\n", a, b, a * b);
+            exit(0);
+        }
+    }
+
+    for (int i = 0; i < 3; i++)
+        wait(NULL);
+
+    return 0;
+}
+
+
+---
+#### ✅ 2. Create an orphan process:
+// q2.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    if (fork() > 0) {
+        printf("Parent exiting\n");
+        exit(0);
+    } else {
+        sleep(5);
+        printf("Child is orphan now. PPID: %d\n", getppid());
+    }
+    return 0;
+}
+
+
+---
+#### ✅ 3. Create a zombie process:
+// q3.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid = fork();
+    if (pid > 0) {
+        sleep(10); // Keep parent alive
+        printf("Parent running. Check zombie using ps\n");
+    } else {
+        printf("Child exiting\n");
+        exit(0);
+    }
+    return 0;
+}
+
+
+---
+#### ✅ 4. Same as Q1 with named children (child_1 to child_3):
+// q4.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    char* names[] = {"child_1", "child_2", "child_3"};
+
+    for (int i = 0; i < 3; i++) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            printf("%s: PID = %d, PPID = %d\n", names[i], getpid(), getppid());
+            exit(0);
+        }
+    }
+
+    for (int i = 0; i < 3; i++)
+        wait(NULL);
+
+    return 0;
+}
+
+
+---
+#### ✅ 5. n child processes with names from command line:
+// q5.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <n> <child_1> <child_2> ...\n", argv[0]);
+        exit(1);
+    }
+
+    int n = atoi(argv[1]);
+    if (argc != n + 2) {
+        printf("Mismatch in number of names and n\n");
+        exit(1);
+    }
+
+    for (int i = 0; i < n; i++) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            printf("%s: PID = %d, PPID = %d\n", argv[i + 2], getpid(), getppid());
+            exit(0);
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        wait(NULL);
+    }
+
+    return 0;
+}
+
+
+---
+#### ✅ 6. Same as Q4 repeated:
+(Use the same as Q4.c again.)
+
+---
+#### ✅ 7. Effect of global vs local variables in parent and child:
+// q7.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int global = 10;
+
+int main() {
+    int local = 5;
+    pid_t pid = fork();
+
+    if (pid == 0) {
+        global += 10;
+        local += 10;
+        printf("Child Process: global = %d, local = %d\n", global, local);
+    } else {
+        wait(NULL);
+        printf("Parent Process: global = %d, local = %d\n", global, local);
+    }
+
+    return 0;
+}
+
+
+---
+#### ✅ 8. IPC using unnamed pipe:
+// q8.c
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+    int fd[2];
+    char buffer[50];
+    pipe(fd);
+
+    if (fork() == 0) {
+        close(fd[1]); // Close write end
+        read(fd[0], buffer, sizeof(buffer));
+        printf("Child received: %s\n", buffer);
+    } else {
+        close(fd[0]);
+        char* msg = "Hello from parent!";
+        write(fd[1], msg, strlen(msg)+1);
+        wait(NULL);
+    }
+    return 0;
+}
+
+
+---
+#### ✅ 9. IPC using named pipe – unrelated processes:
+// fifo_writer.c
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
+
+int main() {
+    mkfifo("myfifo", 0666);
+    int fd = open("myfifo", O_WRONLY);
+    write(fd, "Hello from writer\n", 18);
+    close(fd);
+    return 0;
+}
+
+// fifo_reader.c
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main() {
+    char buf[100];
+    int fd = open("myfifo", O_RDONLY);
+    read(fd, buf, sizeof(buf));
+    printf("Reader got: %s", buf);
+    close(fd);
+    return 0;
+}
+
+
+
+#### ✅ 10. IPC using named pipe – related processes:
+(Parent-child using same executable, no need for 2 files)
+
+// q10.c
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+
+int main() {
+    mkfifo("myfifo2", 0666);
+
+    if (fork() == 0) {
+        int fd = open("myfifo2", O_RDONLY);
+        char buf[100];
+        read(fd, buf, sizeof(buf));
+        printf("Child read: %s\n", buf);
+        close(fd);
+    } else {
+        int fd = open("myfifo2", O_WRONLY);
+        write(fd, "Hello from parent", 18);
+        close(fd);
+        wait(NULL);
+    }
+
+    return 0;
+}
+
+
+---
+#### ✅ 11. Message Queue – Unrelated Processes:
+Use System V message queue.
+
+// message_sender.c
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdio.h>
+#include <string.h>
+
+struct msgbuf {
+    long mtype;
+    char mtext[100];
+};
+
+int main() {
+    key_t key = ftok("mqfile", 65);
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    struct msgbuf message = {1, "Hello from sender"};
+    msgsnd(msgid, &message, sizeof(message.mtext), 0);
+    return 0;
+}
+
+// message_receiver.c
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdio.h>
+
+struct msgbuf {
+    long mtype;
+    char mtext[100];
+};
+
+int main() {
+    key_t key = ftok("mqfile", 65);
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    struct msgbuf message;
+    msgrcv(msgid, &message, sizeof(message.mtext), 1, 0);
+    printf("Received: %s\n", message.mtext);
+    msgctl(msgid, IPC_RMID, NULL);
+    return 0;
+}
+
+
+> Place an empty file named mqfile in the dir.
+
+---
+#### ✅ 12. Message Queue – Related Processes:  
+(Same as above but using fork in one file)
+
+// q12.c
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+struct msgbuf {
+    long mtype;
+    char mtext[100];
+};
+
+int main() {
+    key_t key = ftok("mqfile", 65);
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    struct msgbuf msg;
+
+    if (fork() == 0) {
+        msgrcv(msgid, &msg, sizeof(msg.mtext), 1, 0);
+        printf("Child received: %s\n", msg.mtext);
+    } else {
+        msg.mtype = 1;
+        sprintf(msg.mtext, "Hello from parent");
+        msgsnd(msgid, &msg, sizeof(msg.mtext), 0);
+        wait(NULL);
+        msgctl(msgid, IPC_RMID, NULL);
+    }
+    return 0;
+}
+---
+
+### ✅ 13. Data Inconsistency in Multithreaded Process
+// q13.c
+#include <stdio.h>
+#include <pthread.h>
+
+int counter = 0;
+
+void* increment() {
+    for(int i = 0; i < 1000000; i++)
+        counter++;
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+
+    pthread_create(&t1, NULL, increment, NULL);
+    pthread_create(&t2, NULL, increment, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    printf("Final counter: %d\n", counter);  // Expecting 2000000 but will likely be less
+    return 0;
+}
+
+
+---
+
+### ✅ 14. Data Inconsistency in Related Processes (Shared Memory)
+// q14.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+int main() {
+    int* counter = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE,
+                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *counter = 0;
+
+    if (fork() == 0) {
+        for (int i = 0; i < 100000; i++) (*counter)++;
+        exit(0);
+    } else {
+        for (int i = 0; i < 100000; i++) (*counter)++;
+        wait(NULL);
+        printf("Final counter: %d\n", *counter);
+    }
+
+    return 0;
+}
+
+
+---
+
+### ✅ 15. Data Inconsistency in Unrelated Processes (Shared Memory)
+// shared_mem_write.c
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <string.h>
+
+int main() {
+    int fd = shm_open("shared", O_CREAT | O_RDWR, 0666);
+    ftruncate(fd, 1024);
+    int* counter = mmap(0, 1024, PROT_WRITE, MAP_SHARED, fd, 0);
+
+    *counter = 0;
+    for (int i = 0; i < 100000; i++) ++(*counter);
+    close(fd);
+    return 0;
+}
+
+// shared_mem_read.c
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+int main() {
+    int fd = shm_open("shared", O_RDONLY, 0666);
+    int* counter = mmap(0, 1024, PROT_READ, MAP_SHARED, fd, 0);
+
+    sleep(2);
+    printf("Counter: %d\n", *counter);
+
+    shm_unlink("shared");
+    close(fd);
+    return 0;
+}
+
+
+Run both files from 2 terminals.
+
+---
+
+### ✅ 16. Handle Race Condition in Multithreaded Process (Mutex)
+// q16.c
+#include <stdio.h>
+#include <pthread.h>
+
+int counter = 0;
+pthread_mutex_t lock;
+
+void* increment() {
+    for (int i = 0; i < 1000000; i++) {
+        pthread_mutex_lock(&lock);
+        counter++;
+        pthread_mutex_unlock(&lock);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_mutex_init(&lock, NULL);
+
+    pthread_create(&t1, NULL, increment, NULL);
+    pthread_create(&t2, NULL, increment, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    printf("Final counter: %d\n", counter); // Should be 2 million
+
+    pthread_mutex_destroy(&lock);
+    return 0;
+}
+
+
+---
+
+### ✅ 17. Handle Race in Unrelated Processes (Semaphore)
+// semaphore_example.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+
+int main() {
+    int* counter = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE,
+                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    sem_t* sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE,
+                      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    *counter = 0;
+    sem_init(sem, 1, 1);
+
+    if (fork() == 0) {
+        for (int i = 0; i < 100000; i++) {
+            sem_wait(sem);
+            (*counter)++;
+            sem_post(sem);
+        }
+        exit(0);
+    } else {
+        for (int i = 0; i < 100000; i++) {
+            sem_wait(sem);
+            (*counter)++;
+            sem_post(sem);
+        }
+        wait(NULL);
+        printf("Final counter: %d\n", *counter);
+        sem_destroy(sem);
+    }
+
+    return 0;
+}
+
+
+---
+
+### ✅ 18. Counter Semaphore Usage
+// q18.c
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define MAX_RESOURCES 3
+sem_t sem;
+
+void* use_resource(void* arg) {
+    sem_wait(&sem);
+    printf("Thread %ld is using a resource\n", (long)arg);
+    sleep(1);
+    printf("Thread %ld released a resource\n", (long)arg);
+    sem_post(&sem);
+    return
+
+Shawon, [7/2/2025 4:43 PM]
+ NULL;
+}
+
+int main() {
+    pthread_t threads[5];
+    sem_init(&sem, 0, MAX_RESOURCES);
+
+    for (long i = 0; i < 5; i++) {
+        pthread_create(&threads[i], NULL, use_resource, (void*)i);
+    }
+
+    for (int i = 0; i < 5; i++)
+        pthread_join(threads[i], NULL);
+
+    sem_destroy(&sem);
+    return 0;
+}
+
+
+---
+
+### ✅ **19. fork() and exec() in multi-threaded process**
+// q19.c
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+void* thread_function(void* arg) {
+    printf("Thread here\n");
+    return NULL;
+}
+
+int main() {
+    pthread_t t;
+    pthread_create(&t, NULL, thread_function, NULL);
+
+    sleep(1);  // ensure thread triggers before fork
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        printf("Child (after fork), only one thread here.\n");
+        execlp("ls", "ls", NULL);  // Answer to B and C
+        exit(0);
+    } else {
+        wait(NULL);
+        printf("Parent process done.\n");
+    }
+
+    pthread_join(t, NULL);
+    return 0;
+}
+
+✅ Explanation:
+- A: Only calling thread copies
+- B: exec() replaces entire process image
+- C: If exec() is right after fork() — remaining threads won't be carried forward
+
+---
+
+### ✅ 20. Multithreaded program: Average, Min, Max
+// q20.c
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+int numbers[100], n;
+float average;
+int minimum, maximum;
+
+void* calc_average() {
+    int sum = 0;
+    for (int i = 0; i < n; i++)
+        sum += numbers[i];
+    average = sum / (float)n;
+    return NULL;
+}
+
+void* calc_min() {
+    minimum = numbers[0];
+    for (int i = 1; i < n; i++)
+        if (numbers[i] < minimum)
+            minimum = numbers[i];
+    return NULL;
+}
+
+void* calc_max() {
+    maximum = numbers[0];
+    for (int i = 1; i < n; i++)
+        if (numbers[i] > maximum)
+            maximum = numbers[i];
+    return NULL;
+}
+
+int main(int argc, char* argv[]) {
+    n = argc - 1;
+    for (int i = 0; i < n; i++)
+        numbers[i] = atoi(argv[i + 1]);
+
+    pthread_t t1, t2, t3;
+    pthread_create(&t1, NULL, calc_average, NULL);
+    pthread_create(&t2, NULL, calc_min, NULL);
+    pthread_create(&t3, NULL, calc_max, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    pthread_join(t3, NULL);
+
+    printf("Average: %.2f\n", average);
+    printf("Minimum: %d\n", minimum);
+    printf("Maximum: %d\n", maximum);
+
+    return 0;
+}
+
+
+> Example: ./q20 90 81 78 95 79 72 85
+
+---
+
+### ✅ 21. Multithreaded Fibonacci Generator
+// q21.c
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+int* fib;
+int n;
+
+void* generate_fib() {
+    fib[0] = 0;
+    if (n > 1)
+        fib[1] = 1;
+    for (int i = 2; i < n; i++)
+        fib[i] = fib[i-1] + fib[i-2];
+    return NULL;
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <n>\n", argv[0]);
+        return 1;
+    }
+    n = atoi(argv[1]);
+    fib = malloc(sizeof(int) * n);
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, generate_fib, NULL);
+    pthread_join(thread, NULL);
+
+    printf("Fibonacci series:\n");
+    for (int i = 0; i < n; i++)
+        printf("%d ", fib[i]);
+    printf("\n");
+
+    free(fib);
+    return 0;
+}
+
+
+---
+
+### ✅ 22. Server-Client Model (Pipes or Sockets)
+
+
+A. Single-threaded server with multiple clients:
+// server_single.c
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+int main() {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in addr;
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8080);
+    addr.sin_addr.s_addr = INADDR_ANY;
+
+    bind(sockfd, (struct sockaddr*)&addr, sizeof(addr));
+    listen(sockfd, 5);
+
+    while (1) {
+        int new_sock = accept(sockfd, NULL, NULL);
+        char buffer[100];
+        read(new_sock, buffer, sizeof(buffer));
+        printf("Received: %s\n", buffer);
+        write(new_sock, "Hello from server", 18);
+        close(new_sock);
+    }
+}
+
+
+// client.c
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+int main() {
+    int client = socket(AF_INET, SOC
+
+Shawon, [7/2/2025 4:43 PM]
+K_STREAM, 0);
+    struct sockaddr_in addr;
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8080);
+    addr.sin_addr.s_addr = INADDR_ANY;
+
+    connect(client, (struct sockaddr*)&addr, sizeof(addr));
+    write(client, "Hello from client", 18);
+
+    char buffer[100];
+    read(client, buffer, sizeof(buffer));
+    printf("Received from server: %s\n", buffer);
+    close(client);
+
+    return 0;
+}
+
+
