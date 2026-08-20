@@ -1,96 +1,114 @@
 import turtle
 
-# ---------------------------------------------------------
-# Experiment 4: Bresenham Line Drawing Algorithm
-# ---------------------------------------------------------
-# This program draws a line pixel by pixel using only
-# integer calculations.
-#
-# The code below works for ALL line directions.
-# ---------------------------------------------------------
-
+# =========================
+# Screen Setup
+# =========================
 screen = turtle.Screen()
-screen.title("Bresenham Line Drawing Algorithm")
-screen.setup(900, 700)
 
-pen = turtle.Turtle()
-pen.speed(0)
-pen.hideturtle()
-
-PIXEL_SIZE = 8
-
-# Input line endpoints (small logical coordinates)
-x1, y1 = -35, -20
-x2, y2 = 35, 25
+t = turtle.Turtle()
+t.speed(1)
+t.pensize(1)
 
 
-def draw_axes():
-    axis = turtle.Turtle()
-    axis.hideturtle()
-    axis.speed(0)
-    axis.pencolor("gray")
+# =========================
+# Draw X-Y Axis
+# =========================
 
-    axis.penup()
-    axis.goto(-400, 0)
-    axis.pendown()
-    axis.goto(400, 0)
+# X-axis
+t.penup()
+t.goto(-300, 0)
+t.pendown()
+t.goto(300, 0)
+t.write(" X")
 
-    axis.penup()
-    axis.goto(0, -300)
-    axis.pendown()
-    axis.goto(0, 300)
+# Y-axis
+t.penup()
+t.goto(0, -250)
+t.pendown()
+t.goto(0, 250)
+t.write(" Y")
 
 
-def plot_pixel(x, y, color="blue"):
-    """Draw one square pixel centered at logical point (x, y)."""
-    screen_x = x * PIXEL_SIZE
-    screen_y = y * PIXEL_SIZE
+# Manual screen update
+screen.tracer(0)
 
-    pen.penup()
-    pen.goto(screen_x - PIXEL_SIZE / 2, screen_y - PIXEL_SIZE / 2)
-    pen.setheading(0)
-    pen.pencolor(color)
-    pen.fillcolor(color)
-    pen.pendown()
 
-    pen.begin_fill()
-    for _ in range(4):
-        pen.forward(PIXEL_SIZE)
-        pen.left(90)
-    pen.end_fill()
-
+# =========================
+# Traditional Bresenham
+# =========================
 
 def bresenham(x1, y1, x2, y2):
-    # Distance in x and y
-    dx = abs(x2 - x1)
-    dy = abs(y2 - y1)
 
-    # Direction of movement
-    sx = 1 if x1 < x2 else -1
-    sy = 1 if y1 < y2 else -1
+    dx = x2 - x1
+    dy = y2 - y1
 
-    # Error value
-    error = dx - dy
+    p = 2 * dy - dx
 
-    while True:
-        plot_pixel(x1, y1)
+    x = x1
+    y = y1
 
-        # Stop when destination is reached
-        if x1 == x2 and y1 == y2:
-            break
+    count = 0
 
-        e2 = 2 * error
+    # First point
+    t.penup()
+    t.goto(x, y)
+    t.dot(2, "red")
 
-        if e2 > -dy:
-            error = error - dy
-            x1 = x1 + sx
+    count += 1
 
-        if e2 < dx:
-            error = error + dx
-            y1 = y1 + sy
+    while x < x2:
+
+        x = x + 1
+
+        if p < 0:
+            p = p + 2 * dy
+
+        else:
+            y = y + 1
+            p = p + 2 * dy - 2 * dx
+
+        # Draw point
+        t.penup()
+        t.goto(x, y)
+        t.dot(2, "red")
+
+        count += 1
+
+        # Update after every 5 points
+        if count % 3 == 0:
+            screen.update()
+        
+        
+        # Name first point
+        t.penup()
+        t.goto(x1 + 5, y1 + 5)
+        t.write("A", font=("Arial", 12, "bold"))
+
+        # Name last point
+        t.penup()
+        t.goto(x2 + 5, y2 + 5)
+        t.write("B", font=("Arial", 12, "bold"))
+
+    screen.update()
 
 
-draw_axes()
-bresenham(x1, y1, x2, y2)
+# =========================
+# Manual Input
+# =========================
 
-turtle.done()
+# x1 = int(input("Enter x1: "))
+# y1 = int(input("Enter y1: "))
+# x2 = int(input("Enter x2: "))
+# y2 = int(input("Enter y2: "))
+
+
+# # =========================
+# # Draw Line
+# # =========================
+
+# bresenham(x1, y1, x2, y2)
+bresenham(-200,-200,200,120)
+
+
+# Click window to close
+screen.exitonclick()

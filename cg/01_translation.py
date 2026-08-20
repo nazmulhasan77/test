@@ -14,8 +14,8 @@ screen.title("2D Translation")
 screen.setup(900, 700)
 
 pen = turtle.Turtle()
-pen.speed(3)
-pen.pensize(2)
+pen.speed(2)
+pen.pensize(5)
 
 # Original triangle points
 triangle = [(-200, -100), (-100, -100), (-150, 0)]
